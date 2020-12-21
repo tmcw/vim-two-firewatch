@@ -12,208 +12,9 @@ syntax reset
 "endif
 let g:colors_name = 'two-firewatch'
 
-if !exists('g:two_firewatch_italics')
-  let g:two_firewatch_italics = 0
-endif
+let g:two_firewatch_italics = 1
 
 if has('gui_running') || &t_Co == 88 || &t_Co == 256
-  " functions
-  " returns an approximate grey index for the given grey level
-
-  " Utility functions -------------------------------------------------------{{{
-  fun <SID>grey_number(x)
-    if &t_Co == 88
-      if a:x < 23
-        return 0
-      elseif a:x < 69
-        return 1
-      elseif a:x < 103
-        return 2
-      elseif a:x < 127
-        return 3
-      elseif a:x < 150
-        return 4
-      elseif a:x < 173
-        return 5
-      elseif a:x < 196
-        return 6
-      elseif a:x < 219
-        return 7
-      elseif a:x < 243
-        return 8
-      else
-        return 9
-      endif
-    else
-      if a:x < 14
-        return 0
-      else
-        let l:n = (a:x - 8) / 10
-        let l:m = (a:x - 8) % 10
-        if l:m < 5
-          return l:n
-        else
-          return l:n + 1
-        endif
-      endif
-    endif
-  endfun
-
-  " returns the actual grey level represented by the grey index
-  fun <SID>grey_level(n)
-    if &t_Co == 88
-      if a:n == 0
-        return 0
-      elseif a:n == 1
-        return 46
-      elseif a:n == 2
-        return 92
-      elseif a:n == 3
-        return 115
-      elseif a:n == 4
-        return 139
-      elseif a:n == 5
-        return 162
-      elseif a:n == 6
-        return 185
-      elseif a:n == 7
-        return 208
-      elseif a:n == 8
-        return 231
-      else
-        return 255
-      endif
-    else
-      if a:n == 0
-        return 0
-      else
-        return 8 + (a:n * 10)
-      endif
-    endif
-  endfun
-
-  " returns the palette index for the given grey index
-  fun <SID>grey_color(n)
-    if &t_Co == 88
-      if a:n == 0
-        return 16
-      elseif a:n == 9
-        return 79
-      else
-        return 79 + a:n
-      endif
-    else
-      if a:n == 0
-        return 16
-      elseif a:n == 25
-        return 231
-      else
-        return 231 + a:n
-      endif
-    endif
-  endfun
-
-  " returns an approximate color index for the given color level
-  fun <SID>rgb_number(x)
-    if &t_Co == 88
-      if a:x < 69
-        return 0
-      elseif a:x < 172
-        return 1
-      elseif a:x < 230
-        return 2
-      else
-        return 3
-      endif
-    else
-      if a:x < 75
-        return 0
-      else
-        let l:n = (a:x - 55) / 40
-        let l:m = (a:x - 55) % 40
-        if l:m < 20
-          return l:n
-        else
-          return l:n + 1
-        endif
-      endif
-    endif
-  endfun
-
-  " returns the actual color level for the given color index
-  fun <SID>rgb_level(n)
-    if &t_Co == 88
-      if a:n == 0
-        return 0
-      elseif a:n == 1
-        return 139
-      elseif a:n == 2
-        return 205
-      else
-        return 255
-      endif
-    else
-      if a:n == 0
-        return 0
-      else
-        return 55 + (a:n * 40)
-      endif
-    endif
-  endfun
-
-  " returns the palette index for the given R/G/B color indices
-  fun <SID>rgb_color(x, y, z)
-    if &t_Co == 88
-      return 16 + (a:x * 16) + (a:y * 4) + a:z
-    else
-      return 16 + (a:x * 36) + (a:y * 6) + a:z
-    endif
-  endfun
-
-  " returns the palette index to approximate the given R/G/B color levels
-  fun <SID>color(r, g, b)
-    " get the closest grey
-    let l:gx = <SID>grey_number(a:r)
-    let l:gy = <SID>grey_number(a:g)
-    let l:gz = <SID>grey_number(a:b)
-
-    " get the closest color
-    let l:x = <SID>rgb_number(a:r)
-    let l:y = <SID>rgb_number(a:g)
-    let l:z = <SID>rgb_number(a:b)
-
-    if l:gx == l:gy && l:gy == l:gz
-      " there are two possibilities
-      let l:dgr = <SID>grey_level(l:gx) - a:r
-      let l:dgg = <SID>grey_level(l:gy) - a:g
-      let l:dgb = <SID>grey_level(l:gz) - a:b
-      let l:dgrey = (l:dgr * l:dgr) + (l:dgg * l:dgg) + (l:dgb * l:dgb)
-      let l:dr = <SID>rgb_level(l:gx) - a:r
-      let l:dg = <SID>rgb_level(l:gy) - a:g
-      let l:db = <SID>rgb_level(l:gz) - a:b
-      let l:drgb = (l:dr * l:dr) + (l:dg * l:dg) + (l:db * l:db)
-      if l:dgrey < l:drgb
-        " use the grey
-        return <SID>grey_color(l:gx)
-      else
-        " use the color
-        return <SID>rgb_color(l:x, l:y, l:z)
-      endif
-    else
-      " only one possibility
-      return <SID>rgb_color(l:x, l:y, l:z)
-    endif
-  endfun
-
-  " returns the palette index to approximate the 'rrggbb' hex string
-  fun <SID>rgb(rgb)
-    let l:r = ('0x' . strpart(a:rgb, 0, 2)) + 0
-    let l:g = ('0x' . strpart(a:rgb, 2, 2)) + 0
-    let l:b = ('0x' . strpart(a:rgb, 4, 2)) + 0
-
-    return <SID>color(l:r, l:g, l:b)
-  endfun
-
   " sets the highlighting for the given group
   fun <SID>X(group, fg, bg, attr)
     let l:attr = a:attr
@@ -222,13 +23,13 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
     endif
 
     if a:fg !=? ''
-      exec 'hi ' . a:group . ' guifg=#' . a:fg . ' ctermfg=' . <SID>rgb(a:fg)
+      exec 'hi ' . a:group . ' guifg=#' . a:fg
     endif
     if a:bg !=? ''
-      exec 'hi ' . a:group . ' guibg=#' . a:bg . ' ctermbg=' . <SID>rgb(a:bg)
+      exec 'hi ' . a:group . ' guibg=#' . a:bg
     endif
     if a:attr !=? ''
-      exec 'hi ' . a:group . ' gui=' . l:attr . ' cterm=' . l:attr
+      exec 'hi ' . a:group . ' gui=' . l:attr
     endif
   endfun
 
@@ -258,14 +59,14 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
     let s:syntax_fold_bg          = 'd1cec7'
     let s:syntax_cursor_line      = 'F3EFE7'
   else
-    let s:uno_1 = 'd6e9ff'
-    let s:uno_2 = 'abb2bf'
-    let s:uno_3 = '6e88a6'
-    let s:uno_4 = '55606d'
+    let s:uno_1 = 'f1ebff'
+    let s:uno_2 = 'd9c8fa'
+    let s:uno_3 = 'b3a7fe'
+    let s:uno_4 = '715f95'
 
-    let s:duo_1 = 'c8ae9d'
-    let s:duo_2 = 'e06c75'
-    let s:duo_3 = 'dd672c'
+    let s:duo_1 = 'ffd5a9'
+    let s:duo_2 = 'ebae6b'
+    let s:duo_3 = '765f4c'
 
     let s:syntax_color_renamed  = '33a0ff'
     let s:syntax_color_added    = '43d08a'
@@ -273,8 +74,8 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
     let s:syntax_color_removed  = 'e05252'
 
     let s:syntax_fg               = s:uno_2
-    let s:syntax_bg               = '282c34'
-    let s:syntax_accent           = '56b6c2'
+    let s:syntax_bg               = '2c2734'
+    let s:syntax_accent           = '9decc4'
     let s:syntax_gutter           = '636d83'
     let s:syntax_selection        = '3e4452'
     let s:syntax_fold_bg          = '5c6370'
@@ -347,29 +148,29 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
 
   " Standard syntax highlighting --------------------------------------------{{{
   call <sid>X('Comment',        s:uno_4,                '',          'italic')
-  call <sid>X('Constant',       s:duo_2,                '',          '')
+  call <sid>X('Constant',       s:duo_1,                '',          '')
   call <sid>X('String',         s:duo_1,                '',          '')
   call <sid>X('Character',      s:duo_2,                '',          '')
-  call <sid>X('Number',         s:duo_2,                '',          '')
+  call <sid>X('Number',         s:duo_1,                '',          '')
   call <sid>X('Boolean',        s:duo_2,                '',          '')
   call <sid>X('Float',          s:duo_2,                '',          '')
   call <sid>X('Identifier',     s:uno_3,                '',          'none')
-  call <sid>X('Function',       s:uno_2,                '',          '')
-  call <sid>X('Statement',      s:duo_1,                '',          'none')
-  call <sid>X('Conditional',    s:syntax_accent,        '',          '')
+  call <sid>X('Function',       s:uno_1,                '',          '')
+  call <sid>X('Statement',      s:uno_2,                '',          'none')
+  call <sid>X('Conditional',    s:uno_2,        '',          '')
   call <sid>X('Repeat',         s:duo_2,                '',          '')
   call <sid>X('Label',          s:uno_1,                '',          '')
-  call <sid>X('Operator',       s:syntax_accent,        '',          'none')
-  call <sid>X('Keyword',        s:uno_1,                '',          '')
+  call <sid>X('Operator',       s:uno_1,        '',          'none')
+  call <sid>X('Keyword',        s:uno_2,                '',          '')
   call <sid>X('Exception',      s:uno_1,                '',          '')
-  call <sid>X('PreProc',        s:uno_1,                '',          '')
+  call <sid>X('PreProc',        s:uno_2,                '',          '')
   "call <sid>X('Include',        s:duo_2,                '',          '')
   "call <sid>X('Define',         s:duo_2,                '',          'none')
   "call <sid>X('Macro',          s:uno_3,                '',          '')
   "call <sid>X('PreCondit',      'ff0000',               '',          '')
   call <sid>X('Type',           s:duo_1,                '',          'none')
   call <sid>X('StorageClass',   s:duo_2,                '',          '')
-  call <sid>X('Structure',      s:uno_1,                '',          '')
+  call <sid>X('Structure',      s:uno_3,                '',          '')
   call <sid>X('Typedef',        s:uno_1,                '',          '')
   call <sid>X('Special',        s:uno_3,                '',          '')
   call <sid>X('SpecialChar',    '',                     '',          '')
@@ -387,20 +188,6 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
   call <sid>X('asciidocListingBlock',   s:uno_2,  '', '')
   " }}}
 
-  " Cucumber highlighting ---------------------------------------------------{{{
-  call <sid>X('cucumberGiven',           s:duo_2,         '', '')
-  call <sid>X('cucumberWhen',            s:duo_2,         '', '')
-  call <sid>X('cucumberWhenAnd',         s:duo_2,         '', '')
-  call <sid>X('cucumberThen',            s:duo_2,         '', '')
-  call <sid>X('cucumberThenAnd',         s:duo_2,         '', '')
-  call <sid>X('cucumberUnparsed',        s:duo_1,         '', '')
-  call <sid>X('cucumberFeature',         s:syntax_accent, '', 'bold')
-  call <sid>X('cucumberBackground',      s:duo_2,         '', 'bold')
-  call <sid>X('cucumberScenario',        s:duo_2,         '', 'bold')
-  call <sid>X('cucumberScenarioOutline', s:duo_2,         '', 'bold')
-  call <sid>X('cucumberTags',            s:uno_4,         '', 'bold')
-  call <sid>X('cucumberDelimiter',       s:uno_4,         '', 'bold')
-  " }}}
 
   " Diff highlighting -------------------------------------------------------{{{
   call <sid>X('DiffAdd',     s:syntax_color_added,    s:syntax_selection, '')
@@ -543,8 +330,6 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
   call <sid>X('jsClassKeywords',        s:duo_3,         '', '')
   call <sid>X('jsDocParam',             s:duo_2,         '', '')
   call <sid>X('jsDocTags',              s:duo_3,         '', '')
-  call <sid>X('jsFuncCall',             s:uno_1,         '', '')
-  call <sid>X('jsFunction',             s:duo_3,         '', '')
   call <sid>X('jsGlobalObjects',        s:uno_1,         '', '')
   call <sid>X('jsModuleWords',          s:duo_3,         '', '')
   call <sid>X('jsModules',              s:duo_3,         '', '')
@@ -609,10 +394,6 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
   call <sid>X('htmlItalic',               s:uno_2, '', 'italic')
   " }}}
 
-  " NERDTree highlighting ---------------------------------------------------{{{
-  call <sid>X('NERDTreeExecFile',      s:duo_1, '', '')
-  " }}}
-
   " Ruby highlighting -------------------------------------------------------{{{
   call <sid>X('rubyBlock',                     s:uno_2,         '', '')
   call <sid>X('rubyBlockParameter',            s:uno_2,         '', '')
@@ -635,7 +416,7 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
   call <sid>X('rubyModule',                    s:duo_2,         '', '')
   call <sid>X('rubyRegexp',                    s:duo_1,         '', '')
   call <sid>X('rubyRegexpDelimiter',           s:uno_4,         '', '')
-  call <sid>X('rubyStringDelimiter',           s:duo_3,         '', '')
+  call <sid>X('rubyStringDelimiter',           s:duo_1,         '', '')
   call <sid>X('rubySymbol',                    s:duo_1,         '', '')
   " }}}
 
@@ -649,7 +430,7 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
   " Vim highlighting --------------------------------------------------------{{{
   "call <sid>X('vimCommentTitle', s:uno_4, '', 'bold')
   call <sid>X('vimCommand',      s:uno_1, '', '')
-  call <sid>X('vimVar',          s:duo_2, '', '')
+  call <sid>X('vimVar',          s:duo_1, '', '')
   call <sid>X('vimEnvVar',       s:duo_3, '', '')
 
   " Vim Help highlights
@@ -672,17 +453,24 @@ if has('gui_running') || &t_Co == 88 || &t_Co == 256
   call <sid>X('liquidDelimiter', s:uno_4, '', '')
   call <sid>X('liquidKeyword',   s:uno_3, '', '')
   " }}}
+	"
+  " Cucumber highlighting ---------------------------------------------------{{{
+  " call <sid>X('cucumberGiven',           s:duo_2,         '', '')
+  " call <sid>X('cucumberWhen',            s:duo_2,         '', '')
+  " call <sid>X('cucumberWhenAnd',         s:duo_2,         '', '')
+  " call <sid>X('cucumberThen',            s:duo_2,         '', '')
+  " call <sid>X('cucumberThenAnd',         s:duo_2,         '', '')
+  " call <sid>X('cucumberUnparsed',        s:duo_1,         '', '')
+  " call <sid>X('cucumberFeature',         s:syntax_accent, '', 'bold')
+  " call <sid>X('cucumberBackground',      s:duo_2,         '', 'bold')
+  " call <sid>X('cucumberScenario',        s:duo_2,         '', 'bold')
+  " call <sid>X('cucumberScenarioOutline', s:duo_2,         '', 'bold')
+  " call <sid>X('cucumberTags',            s:uno_4,         '', 'bold')
+  " call <sid>X('cucumberDelimiter',       s:uno_4,         '', 'bold')
+  " }}}
 
 " Delete functions =========================================================={{{
   delf <SID>X
-  delf <SID>rgb
-  delf <SID>color
-  delf <SID>rgb_color
-  delf <SID>rgb_level
-  delf <SID>rgb_number
-  delf <SID>grey_color
-  delf <SID>grey_level
-  delf <SID>grey_number
 "}}}
 
 endif
